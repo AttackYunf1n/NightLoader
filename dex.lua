@@ -1,12 +1,19 @@
--- https://github.com/LorekeeperZinnia/Dex
+local http_service = game:GetService("HttpService")
+local get_hui = gethui or function() return game:GetService("CoreGui") end
 
---[[
-	Dex
-	Created by Moon
-	Modified for Infinite Yield
-
-	Dex is a debugging suite designed to help the user debug games and find any potential vulnerabilities.
-]]
+local old_index
+old_index = hookmetamethod(game, "__newindex", function(self, key, value)
+    if key == "Parent" and value and (value == game:GetService("CoreGui") or value == get_hui()) then
+        if self:IsA("ScreenGui") then
+            self.Name = http_service:GenerateGUID(false)
+            if syn and syn.protect_gui then
+                syn.protect_gui(self)
+            end
+            return old_index(self, key, get_hui())
+        end
+    end
+    return old_index(self, key, value)
+end)
 
 local nodes = {}
 local selection
