@@ -1,32 +1,12 @@
-local get_hui = gethui or function() return game:GetService("CoreGui") end
-local http_service = game:GetService("HttpService")
-local old_instance_new = Instance.new
+-- https://github.com/LorekeeperZinnia/Dex
 
-local function secure_instance(class_name)
-    local obj = old_instance_new(class_name)
-    if class_name == "ScreenGui" then
-        obj.Name = http_service:GenerateGUID(false)
-        obj.ResetOnSpawn = false
-        if syn and syn.protect_gui then
-            syn.protect_gui(obj)
-            obj.Parent = get_hui()
-        elseif get_hui then
-            obj.Parent = get_hui()
-        else
-            obj.Parent = game:GetService("CoreGui")
-        end
-    end
-    return obj
-end
+--[[
+	Dex
+	Created by Moon
+	Modified for Infinite Yield
 
-getgenv().Instance.new = function(class_name, parent)
-    if class_name == "ScreenGui" then
-        local gui = secure_instance(class_name)
-        if parent then gui.Parent = parent end
-        return gui
-    end
-    return old_instance_new(class_name, parent)
-end
+	Dex is a debugging suite designed to help the user debug games and find any potential vulnerabilities.
+]]
 
 local nodes = {}
 local selection
@@ -4843,13 +4823,20 @@ local EmbeddedModules = {
 			Lib.ProtectedGuis = {}
 
 			Lib.ShowGui = function(gui)
-				if env.gethui then
+				-- Рандомизация имени (чтобы античит не видел "Dex", "Explorer" и т.д.)
+				gui.Name = game:GetService("HttpService"):GenerateGUID(false)
+				
+				-- Безопасное скрытие (используем gethui если есть, или стандартную защиту)
+				if gethui then
+					gui.Parent = gethui()
+				elseif env.gethui then
 					gui.Parent = env.gethui()
-				elseif env.protectgui then
-					env.protectgui(gui)
-					gui.Parent = Main.GuiHolder
+				elseif syn and syn.protect_gui then
+					syn.protect_gui(gui)
+					gui.Parent = game:GetService("CoreGui")
 				else
-					gui.Parent = Main.GuiHolder
+					-- Если ничего нет, кидаем в CoreGui (рискованно, но выбора нет)
+					gui.Parent = game:GetService("CoreGui")
 				end
 			end
 
@@ -12197,15 +12184,18 @@ Main = (function()
 	end
 
 	Main.ShowGui = function(gui)
-		if env.gethui then
-			gui.Parent = env.gethui()
-		elseif env.protectgui then
-			env.protectgui(gui)
-			gui.Parent = Main.GuiHolder
-		else
-			gui.Parent = Main.GuiHolder
-		end
-	end
+				gui.Name = game:GetService("HttpService"):GenerateGUID(false)
+				if gethui then
+					gui.Parent = gethui()
+				elseif env.gethui then
+					gui.Parent = env.gethui()
+				elseif syn and syn.protect_gui then
+					syn.protect_gui(gui)
+					gui.Parent = game:GetService("CoreGui")
+				else
+					gui.Parent = game:GetService("CoreGui")
+				end
+			end
 
 	Main.CreateIntro = function(initStatus) -- TODO: Must theme and show errors
 		local gui = create({
