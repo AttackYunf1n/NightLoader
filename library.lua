@@ -116,7 +116,7 @@ local function MakeDraggable(topbar, frame)
     end)
 end
 
-function Phantom:Loader(onSuccess)
+function Phantom:Loader(ValidationFunction)
     if CoreGui:FindFirstChild("PhantomLoader") then CoreGui.PhantomLoader:Destroy() end
 
     local ScreenGui = Create("ScreenGui", { Name = "PhantomLoader", Parent = CoreGui, ZIndexBehavior = Enum.ZIndexBehavior.Sibling })
@@ -171,7 +171,6 @@ function Phantom:Loader(onSuccess)
     PassBox.Text = ""
 
     local LoginBtn = Create("TextButton", { Parent = Content, BackgroundColor3 = Theme.Accent, Position = UDim2.new(0, 20, 0.68, 0), Size = UDim2.new(1, -40, 0, 40), Text = "LOG IN", Font = Enum.Font.GothamBold, TextColor3 = Theme.Text, TextSize = 14, AutoButtonColor = false }, { Create("UICorner", {CornerRadius = UDim.new(0, 8)}) })
-    
     local GetKeyBtn = Create("TextButton", { Parent = Content, BackgroundColor3 = Theme.Section, Position = UDim2.new(0, 20, 0.82, 0), Size = UDim2.new(1, -40, 0, 35), Text = "GET KEY", Font = Enum.Font.GothamBold, TextColor3 = Theme.TextDark, TextSize = 12, AutoButtonColor = false }, { Create("UICorner", {CornerRadius = UDim.new(0, 8)}), Create("UIStroke", {Color = Theme.Stroke, Thickness = 1}) })
 
     LoginBtn.MouseEnter:Connect(function() Tween(LoginBtn, {BackgroundColor3 = Color3.fromRGB(255, 60, 60)}) end)
@@ -206,20 +205,27 @@ function Phantom:Loader(onSuccess)
     end
 
     LoginBtn.MouseButton1Click:Connect(function()
-        if PassBox.Text == "" or UserBox.Text == "" then
+        local inputKey = PassBox.Text
+        if inputKey == "" then
             ShakeAndRed()
-        else
-            if writefile then
-                pcall(function()
-                    writefile("Phantom_Key.txt", PassBox.Text)
-                end)
-            end
+            return
+        end
+        
+        LoginBtn.Text = "CHECKING..."
+        local isValid = ValidationFunction(inputKey)
+        LoginBtn.Text = "LOG IN"
+
+        if isValid then
+            if writefile then pcall(function() writefile("Phantom_Key.txt", inputKey) end) end
+            
             Tween(MainFrame, {Size = UDim2.new(0, 550, 0, 0), BackgroundTransparency = 1}, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.In))
             wait(0.5)
             ScreenGui:Destroy()
-            onSuccess()
+        else
+            ShakeAndRed()
         end
     end)
+
     MakeDraggable(MainFrame, MainFrame)
 end
 
