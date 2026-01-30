@@ -84,6 +84,25 @@ local function GetIcon(name)
     end
 end
 
+local function ShortenKey(keyName)
+    local replacements = {
+        ["LeftControl"] = "L-Ctrl",
+        ["RightControl"] = "R-Ctrl",
+        ["LeftShift"] = "L-Shift",
+        ["RightShift"] = "R-Shift",
+        ["LeftAlt"] = "L-Alt",
+        ["RightAlt"] = "R-Alt",
+        ["CapsLock"] = "Caps",
+        ["Return"] = "Enter",
+        ["Backspace"] = "Back",
+        ["MouseButton1"] = "M1",
+        ["MouseButton2"] = "M2",
+        ["MouseButton3"] = "M3",
+        ["Unknown"] = "None"
+    }
+    return replacements[keyName] or keyName
+end
+
 local function MakeDraggable(topbar, frame)
     topbar.Active = true
     local dragging, dragInput, dragStart, startPos
@@ -433,7 +452,7 @@ function Phantom:Window(title)
                 BackgroundColor3 = Theme.Section,
                 BackgroundTransparency = 0.5,
                 Size = UDim2.new(1, 0, 0, 100),
-                ClipsDescendants = true
+                ClipsDescendants = false
             }, {
                 Create("UICorner", {CornerRadius = UDim.new(0, 10)}),
                 Create("UIStroke", {Color = Theme.Stroke, Thickness = 1}),
@@ -673,7 +692,8 @@ function Phantom:Window(title)
                 local BindFrame = Create("Frame", {
                     Parent = Content,
                     BackgroundColor3 = Theme.Main,
-                    Size = UDim2.new(1, 0, 0, 38)
+                    Size = UDim2.new(1, 0, 0, 38),
+                    ZIndex = 2
                 }, {
                     Create("UICorner", {CornerRadius = UDim.new(0, 8)}),
                     Create("UIStroke", {Color = Theme.Stroke, Thickness = 1}),
@@ -692,10 +712,10 @@ function Phantom:Window(title)
                 local BindBtn = Create("TextButton", {
                     Parent = BindFrame,
                     BackgroundColor3 = Theme.Section,
-                    Position = UDim2.new(1, -50, 0, 6),
-                    Size = UDim2.new(0, 40, 0, 26),
+                    Position = UDim2.new(1, -55, 0, 6),
+                    Size = UDim2.new(0, 45, 0, 26),
                     Font = Enum.Font.Gotham,
-                    Text = Key.Name,
+                    Text = ShortenKey(Key.Name),
                     TextColor3 = Theme.TextDark,
                     TextSize = 12,
                     AutoButtonColor = false
@@ -704,10 +724,10 @@ function Phantom:Window(title)
                 local Context = Create("Frame", {
                     Parent = BindFrame,
                     BackgroundColor3 = Theme.Main,
-                    Position = UDim2.new(1, -110, 1, 5),
-                    Size = UDim2.new(0, 100, 0, 60),
+                    Position = UDim2.new(1, -95, 1, 5),
+                    Size = UDim2.new(0, 85, 0, 60),
                     Visible = false,
-                    ZIndex = 10
+                    ZIndex = 100 
                 }, {
                     Create("UICorner", {CornerRadius = UDim.new(0, 6)}),
                     Create("UIStroke", {Color = Theme.Stroke, Thickness = 1}),
@@ -724,7 +744,7 @@ function Phantom:Window(title)
                         TextColor3 = (Mode == modeVal) and Theme.Accent or Theme.TextDark,
                         TextSize = 12,
                         AutoButtonColor = false,
-                        ZIndex = 11
+                        ZIndex = 101
                     })
                     btn.MouseButton1Click:Connect(function()
                         Mode = modeVal
@@ -749,6 +769,7 @@ function Phantom:Window(title)
 
                 BindBtn.MouseButton2Click:Connect(function()
                     Context.Visible = not Context.Visible
+                    BindFrame.ZIndex = Context.Visible and 100 or 2
                 end)
 
                 UserInputService.InputBegan:Connect(function(input, processed)
@@ -757,7 +778,7 @@ function Phantom:Window(title)
                             if input.KeyCode ~= Enum.KeyCode.Unknown then
                                 Key = input.KeyCode
                                 Binding = false
-                                BindBtn.Text = Key.Name
+                                BindBtn.Text = ShortenKey(Key.Name)
                                 BindBtn.TextColor3 = Theme.TextDark
                                 Settings[text] = {Key = Key.Name, Mode = Mode}
                                 SaveSettings()
