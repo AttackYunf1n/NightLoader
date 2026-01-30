@@ -23,7 +23,7 @@ local Theme = {
 }
 
 local Settings = {}
-local SettingsFile = "Phantom_Settings.json"
+local SettingsFile = "Phantom_Config.json"
 
 local function LoadSettings()
     if isfile and isfile(SettingsFile) and readfile then
@@ -116,124 +116,8 @@ local function MakeDraggable(topbar, frame)
     end)
 end
 
-function Phantom:Loader(ValidationFunction)
-    if CoreGui:FindFirstChild("PhantomLoader") then CoreGui.PhantomLoader:Destroy() end
-
-    local ScreenGui = Create("ScreenGui", { Name = "PhantomLoader", Parent = CoreGui, ZIndexBehavior = Enum.ZIndexBehavior.Sibling })
-    
-    local MainFrame = Create("Frame", {
-        Name = "MainFrame", Parent = ScreenGui, BackgroundColor3 = Theme.Main, BackgroundTransparency = Theme.MainTransparency,
-        Position = UDim2.new(0.5, 0, 0.5, 0), Size = UDim2.new(0, 550, 0, 350), AnchorPoint = Vector2.new(0.5, 0.5), BorderSizePixel = 0, ClipsDescendants = true, Active = true
-    }, { Create("UICorner", {CornerRadius = UDim.new(0, 14)}), Create("UIStroke", {Color = Theme.Stroke, Thickness = 1}) })
-
-    local Sidebar = Create("Frame", {
-        Name = "Sidebar", Parent = MainFrame, BackgroundColor3 = Theme.Sidebar, BackgroundTransparency = Theme.SidebarTransparency,
-        Size = UDim2.new(0, 180, 1, 0), BorderSizePixel = 0
-    }, {
-        Create("UICorner", {CornerRadius = UDim.new(0, 14)}),
-        Create("Frame", { BackgroundColor3 = Theme.Sidebar, BackgroundTransparency = Theme.SidebarTransparency, Position = UDim2.new(1, -10, 0, 0), Size = UDim2.new(0, 20, 1, 0), BorderSizePixel = 0 }),
-        Create("ImageLabel", {
-            Name = "Avatar", BackgroundTransparency = 1, Position = UDim2.new(0.5, 0, 0.4, 0), Size = UDim2.new(0, 65, 0, 65), AnchorPoint = Vector2.new(0.5, 0.5),
-            Image = Players:GetUserThumbnailAsync(LocalPlayer.UserId, Enum.ThumbnailType.AvatarBust, Enum.ThumbnailSize.Size420x420)
-        }, {Create("UICorner", {CornerRadius = UDim.new(1, 0)})})
-    })
-
-    local Content = Create("Frame", { Parent = MainFrame, BackgroundTransparency = 1, Position = UDim2.new(0, 200, 0, 0), Size = UDim2.new(1, -200, 1, 0) })
-
-    Create("TextLabel", { Parent = Content, BackgroundTransparency = 1, Position = UDim2.new(0, 0, 0.1, 0), Size = UDim2.new(1, 0, 0, 30), Font = Enum.Font.GothamBold, Text = "PHANTOM <font color='rgb(220,30,30)'>HUB</font>", TextColor3 = Theme.Text, TextSize = 24, RichText = true })
-    Create("TextLabel", { Parent = Content, BackgroundTransparency = 1, Position = UDim2.new(0, 0, 0.2, 0), Size = UDim2.new(1, 0, 0, 20), Font = Enum.Font.Gotham, Text = "Welcome back, " .. LocalPlayer.Name, TextColor3 = Theme.TextDark, TextSize = 14 })
-
-    local function CreateInput(placeholder, icon, hidden)
-        local InputFrame = Create("Frame", { Parent = Content, BackgroundColor3 = Theme.Section, BackgroundTransparency = 0.5, Size = UDim2.new(1, -40, 0, 40) }, { Create("UICorner", {CornerRadius = UDim.new(0, 8)}), Create("UIStroke", {Color = Theme.Stroke, Thickness = 1}) })
-        local IconLabel = Create("ImageLabel", { Parent = InputFrame, BackgroundTransparency = 1, Position = UDim2.new(0, 10, 0.5, -10), Size = UDim2.new(0, 20, 0, 20), Image = GetIcon(icon), ImageColor3 = Theme.TextDark })
-        local Box = Create("TextBox", { Parent = InputFrame, BackgroundTransparency = 1, Position = UDim2.new(0, 40, 0, 0), Size = UDim2.new(1, -50, 1, 0), Font = Enum.Font.Gotham, PlaceholderText = placeholder, PlaceholderColor3 = Theme.TextDark, Text = "", TextColor3 = Theme.Text, TextSize = 14, TextXAlignment = Enum.TextXAlignment.Left, ClearTextOnFocus = false })
-        
-        if hidden then
-            Box.TextTransparency = 1
-            local MaskDisplay = Create("TextLabel", {
-                Parent = InputFrame, BackgroundTransparency = 1, Position = UDim2.new(0, 40, 0, 0), Size = UDim2.new(1, -50, 1, 0),
-                Font = Enum.Font.GothamBold, Text = "", TextColor3 = Theme.Text, TextSize = 18, TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 2
-            })
-            Box:GetPropertyChangedSignal("Text"):Connect(function()
-                MaskDisplay.Text = string.rep("●", #Box.Text)
-            end)
-        end
-        
-        Box.Focused:Connect(function() Tween(InputFrame, {BackgroundColor3 = Theme.Main}) Tween(IconLabel, {ImageColor3 = Theme.Accent}) end)
-        Box.FocusLost:Connect(function() Tween(InputFrame, {BackgroundColor3 = Theme.Section}) Tween(IconLabel, {ImageColor3 = Theme.TextDark}) end)
-        return Box, InputFrame
-    end
-
-    local UserBox, UserFrame = CreateInput("Username", "User") UserFrame.Position = UDim2.new(0, 20, 0.35, 0)
-    local PassBox, PassFrame = CreateInput("Key", "Lock", true) PassFrame.Position = UDim2.new(0, 20, 0.50, 0)
-
-    UserBox.Text = LocalPlayer.Name
-    PassBox.Text = ""
-
-    local LoginBtn = Create("TextButton", { Parent = Content, BackgroundColor3 = Theme.Accent, Position = UDim2.new(0, 20, 0.68, 0), Size = UDim2.new(1, -40, 0, 40), Text = "LOG IN", Font = Enum.Font.GothamBold, TextColor3 = Theme.Text, TextSize = 14, AutoButtonColor = false }, { Create("UICorner", {CornerRadius = UDim.new(0, 8)}) })
-    local GetKeyBtn = Create("TextButton", { Parent = Content, BackgroundColor3 = Theme.Section, Position = UDim2.new(0, 20, 0.82, 0), Size = UDim2.new(1, -40, 0, 35), Text = "GET KEY", Font = Enum.Font.GothamBold, TextColor3 = Theme.TextDark, TextSize = 12, AutoButtonColor = false }, { Create("UICorner", {CornerRadius = UDim.new(0, 8)}), Create("UIStroke", {Color = Theme.Stroke, Thickness = 1}) })
-
-    LoginBtn.MouseEnter:Connect(function() Tween(LoginBtn, {BackgroundColor3 = Color3.fromRGB(255, 60, 60)}) end)
-    LoginBtn.MouseLeave:Connect(function() Tween(LoginBtn, {BackgroundColor3 = Theme.Accent}) end)
-
-    GetKeyBtn.MouseEnter:Connect(function() Tween(GetKeyBtn, {BackgroundColor3 = Color3.fromRGB(30, 30, 30), TextColor3 = Theme.Text}) end)
-    GetKeyBtn.MouseLeave:Connect(function() Tween(GetKeyBtn, {BackgroundColor3 = Theme.Section, TextColor3 = Theme.TextDark}) end)
-
-    GetKeyBtn.MouseButton1Click:Connect(function()
-        if setclipboard then
-            setclipboard("https://link.luarmor.net/")
-            Phantom:Notify("Success", "Copied", 2)
-        end
-    end)
-
-    local function ShakeAndRed()
-        local originalPos = MainFrame.Position
-        Tween(MainFrame, {BackgroundColor3 = Theme.ErrorRed}, TweenInfo.new(0.2))
-        Tween(Sidebar, {BackgroundColor3 = Theme.ErrorRed}, TweenInfo.new(0.2))
-        
-        for i = 1, 6 do
-            local offset = (i % 2 == 0) and -5 or 5
-            Tween(MainFrame, {Position = originalPos + UDim2.new(0, offset, 0, 0)}, TweenInfo.new(0.05))
-            wait(0.05)
-        end
-        Tween(MainFrame, {Position = originalPos}, TweenInfo.new(0.05))
-
-        task.delay(1.3, function()
-            Tween(MainFrame, {BackgroundColor3 = Theme.Main}, TweenInfo.new(0.5))
-            Tween(Sidebar, {BackgroundColor3 = Theme.Sidebar}, TweenInfo.new(0.5))
-        end)
-    end
-
-    LoginBtn.MouseButton1Click:Connect(function()
-        local inputKey = PassBox.Text
-        if inputKey == "" then
-            ShakeAndRed()
-            return
-        end
-        
-        LoginBtn.Text = "CHECKING..."
-        local isValid = ValidationFunction(inputKey)
-        LoginBtn.Text = "LOG IN"
-
-        if isValid then
-            if writefile then pcall(function() writefile("Phantom_Key.txt", inputKey) end) end
-            
-            Tween(MainFrame, {Size = UDim2.new(0, 550, 0, 0), BackgroundTransparency = 1}, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.In))
-            wait(0.5)
-            ScreenGui:Destroy()
-        else
-            ShakeAndRed()
-        end
-    end)
-
-    MakeDraggable(MainFrame, MainFrame)
-end
-
 function Phantom:Notify(title, text, duration)
     local ScreenGui = CoreGui:FindFirstChild("PhantomUI")
-    if not ScreenGui then 
-        ScreenGui = CoreGui:FindFirstChild("PhantomLoader")
-    end
     if not ScreenGui then return end
     
     local Container = ScreenGui:FindFirstChild("NotifContainer")
@@ -772,6 +656,129 @@ function Phantom:Window(title)
                     Settings[text] = BoxFrame.TextBox.Text
                     SaveSettings()
                     callback(BoxFrame.TextBox.Text)
+                end)
+            end
+
+            function SectionObj:Keybind(text, default, callback)
+                local Key = default or Enum.KeyCode.E
+                local Mode = "Toggle"
+                local Binding = false
+                local Active = false
+
+                if Settings[text] then
+                    if Settings[text].Key then Key = Enum.KeyCode[Settings[text].Key] end
+                    if Settings[text].Mode then Mode = Settings[text].Mode end
+                end
+
+                local BindFrame = Create("Frame", {
+                    Parent = Content,
+                    BackgroundColor3 = Theme.Main,
+                    Size = UDim2.new(1, 0, 0, 38)
+                }, {
+                    Create("UICorner", {CornerRadius = UDim.new(0, 8)}),
+                    Create("UIStroke", {Color = Theme.Stroke, Thickness = 1}),
+                    Create("TextLabel", {
+                        BackgroundTransparency = 1,
+                        Position = UDim2.new(0, 12, 0, 0),
+                        Size = UDim2.new(1, -60, 0, 38),
+                        Font = Enum.Font.Gotham,
+                        Text = text,
+                        TextColor3 = Theme.Text,
+                        TextSize = 13,
+                        TextXAlignment = Enum.TextXAlignment.Left
+                    })
+                })
+
+                local BindBtn = Create("TextButton", {
+                    Parent = BindFrame,
+                    BackgroundColor3 = Theme.Section,
+                    Position = UDim2.new(1, -50, 0, 6),
+                    Size = UDim2.new(0, 40, 0, 26),
+                    Font = Enum.Font.Gotham,
+                    Text = Key.Name,
+                    TextColor3 = Theme.TextDark,
+                    TextSize = 12,
+                    AutoButtonColor = false
+                }, {Create("UICorner", {CornerRadius = UDim.new(0, 6)}), Create("UIStroke", {Color = Theme.Stroke, Thickness = 1})})
+
+                local Context = Create("Frame", {
+                    Parent = BindFrame,
+                    BackgroundColor3 = Theme.Main,
+                    Position = UDim2.new(1, -110, 1, 5),
+                    Size = UDim2.new(0, 100, 0, 60),
+                    Visible = false,
+                    ZIndex = 10
+                }, {
+                    Create("UICorner", {CornerRadius = UDim.new(0, 6)}),
+                    Create("UIStroke", {Color = Theme.Stroke, Thickness = 1}),
+                    Create("UIListLayout", {SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 2)})
+                })
+
+                local function MakeModeBtn(name, modeVal)
+                    local btn = Create("TextButton", {
+                        Parent = Context,
+                        BackgroundColor3 = Theme.Main,
+                        Size = UDim2.new(1, 0, 0, 28),
+                        Font = Enum.Font.Gotham,
+                        Text = name,
+                        TextColor3 = (Mode == modeVal) and Theme.Accent or Theme.TextDark,
+                        TextSize = 12,
+                        AutoButtonColor = false,
+                        ZIndex = 11
+                    })
+                    btn.MouseButton1Click:Connect(function()
+                        Mode = modeVal
+                        Settings[text] = {Key = Key.Name, Mode = Mode}
+                        SaveSettings()
+                        Context.Visible = false
+                        for _, b in pairs(Context:GetChildren()) do
+                            if b:IsA("TextButton") then b.TextColor3 = Theme.TextDark end
+                        end
+                        btn.TextColor3 = Theme.Accent
+                    end)
+                end
+
+                MakeModeBtn("Toggle", "Toggle")
+                MakeModeBtn("Hold", "Hold")
+
+                BindBtn.MouseButton1Click:Connect(function()
+                    Binding = true
+                    BindBtn.Text = "..."
+                    BindBtn.TextColor3 = Theme.Accent
+                end)
+
+                BindBtn.MouseButton2Click:Connect(function()
+                    Context.Visible = not Context.Visible
+                end)
+
+                UserInputService.InputBegan:Connect(function(input, processed)
+                    if Binding then
+                        if input.UserInputType == Enum.UserInputType.Keyboard or input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.MouseButton2 then
+                            if input.KeyCode ~= Enum.KeyCode.Unknown then
+                                Key = input.KeyCode
+                                Binding = false
+                                BindBtn.Text = Key.Name
+                                BindBtn.TextColor3 = Theme.TextDark
+                                Settings[text] = {Key = Key.Name, Mode = Mode}
+                                SaveSettings()
+                            end
+                        end
+                    elseif input.KeyCode == Key and not processed then
+                        if Mode == "Toggle" then
+                            Active = not Active
+                            callback(Active)
+                        else
+                            Active = true
+                            callback(true)
+                        end
+                    end
+                end)
+
+                UserInputService.InputEnded:Connect(function(input)
+                    if input.KeyCode == Key and Mode == "Hold" then
+                        Active = false
+                        callback(false)
+                    end
                 end)
             end
 
