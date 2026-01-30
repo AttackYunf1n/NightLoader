@@ -685,7 +685,13 @@ function Phantom:Window(title)
                 local Active = false
 
                 if Settings[text] then
-                    if Settings[text].Key then Key = Enum.KeyCode[Settings[text].Key] end
+                    if Settings[text].Key then
+                        if pcall(function() return Enum.KeyCode[Settings[text].Key] end) then
+                            Key = Enum.KeyCode[Settings[text].Key]
+                        elseif pcall(function() return Enum.UserInputType[Settings[text].Key] end) then
+                            Key = Enum.UserInputType[Settings[text].Key]
+                        end
+                    end
                     if Settings[text].Mode then Mode = Settings[text].Mode end
                 end
 
@@ -790,29 +796,38 @@ function Phantom:Window(title)
 
                 UserInputService.InputBegan:Connect(function(input, processed)
                     if Binding then
-                        if input.UserInputType == Enum.UserInputType.Keyboard or input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.MouseButton2 then
-                            if input.KeyCode ~= Enum.KeyCode.Unknown then
-                                Key = input.KeyCode
-                                Binding = false
-                                BindBtn.Text = ShortenKey(Key.Name)
-                                BindBtn.TextColor3 = Theme.TextDark
-                                Settings[text] = {Key = Key.Name, Mode = Mode}
-                                SaveSettings()
-                            end
+                        local bindingInput
+                        if input.UserInputType == Enum.UserInputType.Keyboard then
+                            bindingInput = input.KeyCode
+                        elseif input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.MouseButton2 or input.UserInputType == Enum.UserInputType.MouseButton3 then
+                            bindingInput = input.UserInputType
                         end
-                    elseif input.KeyCode == Key and not processed then
-                        if Mode == "Toggle" then
-                            Active = not Active
-                            callback(Active)
-                        else
-                            Active = true
-                            callback(true)
+
+                        if bindingInput and bindingInput ~= Enum.KeyCode.Unknown then
+                            Key = bindingInput
+                            Binding = false
+                            BindBtn.Text = ShortenKey(Key.Name)
+                            BindBtn.TextColor3 = Theme.TextDark
+                            Settings[text] = {Key = Key.Name, Mode = Mode}
+                            SaveSettings()
+                        end
+                    elseif not processed then
+                        local checkInput = (input.UserInputType == Enum.UserInputType.Keyboard) and input.KeyCode or input.UserInputType
+                        if checkInput == Key then
+                            if Mode == "Toggle" then
+                                Active = not Active
+                                callback(Active)
+                            else
+                                Active = true
+                                callback(true)
+                            end
                         end
                     end
                 end)
 
                 UserInputService.InputEnded:Connect(function(input)
-                    if input.KeyCode == Key and Mode == "Hold" then
+                    local checkInput = (input.UserInputType == Enum.UserInputType.Keyboard) and input.KeyCode or input.UserInputType
+                    if checkInput == Key and Mode == "Hold" then
                         Active = false
                         callback(false)
                     end
