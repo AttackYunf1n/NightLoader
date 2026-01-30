@@ -724,37 +724,47 @@ function Phantom:Window(title)
                 local Context = Create("Frame", {
                     Parent = BindFrame,
                     BackgroundColor3 = Theme.Main,
-                    Position = UDim2.new(1, -95, 1, 5),
-                    Size = UDim2.new(0, 85, 0, 60),
+                    Position = UDim2.new(1, -60, 1, 5),
+                    Size = UDim2.new(0, 50, 0, 0),
+                    ClipsDescendants = true,
                     Visible = false,
-                    ZIndex = 100 
+                    ZIndex = 200
                 }, {
                     Create("UICorner", {CornerRadius = UDim.new(0, 6)}),
                     Create("UIStroke", {Color = Theme.Stroke, Thickness = 1}),
-                    Create("UIListLayout", {SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 2)})
+                    Create("UIListLayout", {SortOrder = Enum.SortOrder.LayoutOrder})
                 })
 
                 local function MakeModeBtn(name, modeVal)
                     local btn = Create("TextButton", {
                         Parent = Context,
                         BackgroundColor3 = Theme.Main,
-                        Size = UDim2.new(1, 0, 0, 28),
+                        Size = UDim2.new(1, 0, 0, 25),
                         Font = Enum.Font.Gotham,
                         Text = name,
                         TextColor3 = (Mode == modeVal) and Theme.Accent or Theme.TextDark,
-                        TextSize = 12,
+                        TextSize = 11,
                         AutoButtonColor = false,
-                        ZIndex = 101
+                        ZIndex = 201
                     })
+                    
+                    btn.MouseEnter:Connect(function() if Mode ~= modeVal then btn.TextColor3 = Theme.Text end end)
+                    btn.MouseLeave:Connect(function() if Mode ~= modeVal then btn.TextColor3 = Theme.TextDark end end)
+
                     btn.MouseButton1Click:Connect(function()
                         Mode = modeVal
                         Settings[text] = {Key = Key.Name, Mode = Mode}
                         SaveSettings()
+                        
                         Context.Visible = false
+                        Tween(Context, {Size = UDim2.new(0, 50, 0, 0)})
+                        BindFrame.ZIndex = 2
+                        
                         for _, b in pairs(Context:GetChildren()) do
-                            if b:IsA("TextButton") then b.TextColor3 = Theme.TextDark end
+                            if b:IsA("TextButton") then 
+                                b.TextColor3 = (b.Text == Mode) and Theme.Accent or Theme.TextDark 
+                            end
                         end
-                        btn.TextColor3 = Theme.Accent
                     end)
                 end
 
@@ -768,8 +778,14 @@ function Phantom:Window(title)
                 end)
 
                 BindBtn.MouseButton2Click:Connect(function()
-                    Context.Visible = not Context.Visible
-                    BindFrame.ZIndex = Context.Visible and 100 or 2
+                    if Context.Visible then
+                        Tween(Context, {Size = UDim2.new(0, 50, 0, 0)})
+                        task.delay(0.2, function() Context.Visible = false BindFrame.ZIndex = 2 end)
+                    else
+                        BindFrame.ZIndex = 100
+                        Context.Visible = true
+                        Tween(Context, {Size = UDim2.new(0, 50, 0, 50)})
+                    end
                 end)
 
                 UserInputService.InputBegan:Connect(function(input, processed)
