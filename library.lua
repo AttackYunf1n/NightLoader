@@ -111,7 +111,7 @@ local function MakeDraggable(topbar, frame)
     local dragging, dragInput, dragStart, startPos
 
     topbar.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
             dragging = true
             dragStart = input.Position
             startPos = frame.Position
@@ -125,7 +125,7 @@ local function MakeDraggable(topbar, frame)
     end)
 
     topbar.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement then
+        if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement then
             dragInput = input
         end
     end)
@@ -624,18 +624,18 @@ function Phantom:Window(title)
                 if default then callback(Value) end
                 
                 Track.InputBegan:Connect(function(input)
-                    if input.UserInputType == Enum.UserInputType.MouseButton1 then Dragging = true end
+                    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then Dragging = true end
                 end)
                 
                 UserInputService.InputEnded:Connect(function(input)
-                    if input.UserInputType == Enum.UserInputType.MouseButton1 then 
+                    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then 
                         Dragging = false 
                         SaveSettings()
                     end
                 end)
                 
                 UserInputService.InputChanged:Connect(function(input)
-                    if Dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+                    if Dragging and (input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement) then
                         local P = math.clamp((input.Position.X - Track.AbsolutePosition.X) / Track.AbsoluteSize.X, 0, 1)
                         Value = math.floor((min + ((max - min) * P)) * 10) / 10
                         SliderFrame.Val.Text = tostring(Value)
@@ -983,19 +983,19 @@ function Phantom:Window(title)
                 end
 
                 SVBox.InputBegan:Connect(function(input)
-                    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
                         DraggingColor = true
                     end
                 end)
 
                 HueBar.InputBegan:Connect(function(input)
-                    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
                         DraggingHue = true
                     end
                 end)
 
                 UserInputService.InputEnded:Connect(function(input)
-                    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
                         DraggingColor = false
                         DraggingHue = false
                         SaveSettings()
@@ -1003,7 +1003,7 @@ function Phantom:Window(title)
                 end)
 
                 UserInputService.InputChanged:Connect(function(input)
-                    if input.UserInputType == Enum.UserInputType.MouseMovement then
+                    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement then
                         if DraggingColor then
                             local Size = SVBox.AbsoluteSize
                             local Pos = SVBox.AbsolutePosition
