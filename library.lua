@@ -4,6 +4,7 @@ local HttpService = game:GetService("HttpService")
 local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
+local Mouse = LocalPlayer:GetMouse()
 local Camera = workspace.CurrentCamera
 
 local Phantom = {}
@@ -71,7 +72,7 @@ local function GetIcon(name)
         Settings = "rbxassetid://125142287445982",
         Misc = "rbxassetid://74724520908176",
         Home = "rbxassetid://10747384394",
-        Target = "http://www.roblox.com/asset/?id=88733240786900",
+        Target = "rbxassetid://72388072420613",
         User = "rbxassetid://120214019251678",
         Lock = "rbxassetid://72241908544847"
     }
@@ -79,12 +80,10 @@ local function GetIcon(name)
         return icons[name]
     elseif string.find(tostring(name), "rbxassetid://") then
         return name
-    elseif string.find(tostring(name), "http://") then
-        return name
     elseif tonumber(name) then
         return "rbxassetid://" .. tostring(name)
     else
-        return "rbxassetid://10747384394"
+        return icons.Home
     end
 end
 
@@ -254,12 +253,12 @@ function Phantom:Window(title)
         Active = true
     }, {
         Create("ImageButton", {
-            Name = "ToggleButton",
+            Name = "Minimizer",
             BackgroundTransparency = 1,
             Position = UDim2.new(0, 15, 0.5, 0),
             Size = UDim2.new(0, 20, 0, 20),
             AnchorPoint = Vector2.new(0, 0.5),
-            Image = "http://www.roblox.com/asset/?id=88733240786900",
+            Image = GetIcon("Target"),
             ImageColor3 = Theme.Accent
         }),
         Create("TextLabel", {
@@ -317,61 +316,36 @@ function Phantom:Window(title)
         ClipsDescendants = true
     })
     
-    local IsHidden = false
-    local HiddenFrame = Create("Frame", {
-        Parent = ScreenGui,
-        BackgroundColor3 = Theme.Main,
-        BackgroundTransparency = Theme.MainTransparency,
-        Size = UDim2.new(0, 60, 0, 60),
-        Position = UDim2.new(0, 20, 0, 20),
-        BorderSizePixel = 0,
-        Visible = false,
-        Active = true
-    }, {
-        Create("UICorner", {CornerRadius = UDim.new(0, 12)}),
-        Create("UIStroke", {Color = Theme.Stroke, Thickness = 1}),
-        Create("ImageButton", {
-            Name = "HiddenToggle",
-            BackgroundTransparency = 1,
-            Size = UDim2.new(1, 0, 1, 0),
-            Image = "http://www.roblox.com/asset/?id=88733240786900",
-            ImageColor3 = Theme.Accent
-        })
-    })
-    
-    local function ToggleVisibility()
-        IsHidden = not IsHidden
-        
-        if IsHidden then
-            local mainPos = Main.Position
-            local mainSize = Main.Size
-            
-            HiddenFrame.Position = UDim2.new(mainPos.X.Scale, mainPos.X.Offset, mainPos.Y.Scale, mainPos.Y.Offset)
-            
-            Main.Visible = false
-            HiddenFrame.Visible = true
-            
-            Tween(HiddenFrame, {Size = UDim2.new(0, 60, 0, 60)})
+    local IsMinimized = false
+    local function ToggleMenu()
+        IsMinimized = not IsMinimized
+        if IsMinimized then
+            Sidebar.Visible = false
+            Container.Visible = false
+            Tween(Main, {Size = UDim2.new(0, 200, 0, 50)}, TweenInfo.new(0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.Out))
         else
-            local hiddenPos = HiddenFrame.Position
-            
-            Main.Position = UDim2.new(hiddenPos.X.Scale, hiddenPos.X.Offset, hiddenPos.Y.Scale, hiddenPos.Y.Offset)
-            
-            HiddenFrame.Visible = false
-            Main.Visible = true
-            
-            Tween(Main, {Size = WindowSize})
+            Tween(Main, {Size = WindowSize, Position = UDim2.new(0.5, 0, 0.5, 0)}, TweenInfo.new(0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.Out))
+            task.delay(0.3, function()
+                if not IsMinimized then
+                    Sidebar.Visible = true
+                    Container.Visible = true
+                end
+            end)
         end
     end
 
-    TopBar.ToggleButton.MouseButton1Click:Connect(ToggleVisibility)
-    HiddenFrame.HiddenToggle.MouseButton1Click:Connect(ToggleVisibility)
+    TopBar.Minimizer.MouseButton1Click:Connect(ToggleMenu)
     
+    UserInputService.InputBegan:Connect(function(input)
+        if input.KeyCode == Enum.KeyCode.LeftControl then
+            ToggleMenu()
+        end
+    end)
+
     local IsMobile = UserInputService.TouchEnabled
+    local DragConnection
     
     if IsMobile then
-        MakeDraggable(HiddenFrame, HiddenFrame)
-        
         local DragButton = Create("TextButton", {
             Parent = TopBar,
             BackgroundTransparency = 1,
@@ -383,70 +357,19 @@ function Phantom:Window(title)
             TextSize = 20
         })
         
-        local dragging = false
-        local dragStart, startPos
-        
         DragButton.MouseButton1Down:Connect(function()
-            dragging = true
-            dragStart = UserInputService:GetMouseLocation()
-            startPos = Main.Position
+            MakeDraggable(TopBar, Main)
         end)
         
-        UserInputService.InputChanged:Connect(function(input)
-            if dragging and (input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement) then
-                local delta = input.Position - dragStart
-                Tween(Main, {Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)}, TweenInfo.new(0.05))
+        DragButton.MouseButton1Up:Connect(function()
+            if DragConnection then
+                DragConnection:Disconnect()
+                DragConnection = nil
             end
         end)
-        
-        UserInputService.InputEnded:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
-                dragging = false
-            end
-        end)
-        
-        local function updateHiddenPosition()
-            if IsHidden then
-                HiddenFrame.Position = Main.Position
-            end
-        end
-        
-        DragButton.MouseButton1Up:Connect(updateHiddenPosition)
     else
         MakeDraggable(TopBar, Main)
-        
-        local function updateHiddenPosition()
-            if IsHidden then
-                HiddenFrame.Position = Main.Position
-            end
-        end
-        
-        local dragConnection
-        TopBar.InputBegan:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                if dragConnection then
-                    dragConnection:Disconnect()
-                end
-                dragConnection = TopBar.InputChanged:Connect(updateHiddenPosition)
-            end
-        end)
-        
-        TopBar.InputEnded:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                if dragConnection then
-                    dragConnection:Disconnect()
-                    dragConnection = nil
-                end
-                updateHiddenPosition()
-            end
-        end)
     end
-    
-    UserInputService.InputBegan:Connect(function(input)
-        if input.KeyCode == Enum.KeyCode.RightControl then
-            ToggleVisibility()
-        end
-    end)
 
     local WindowObj = {}
     local Tabs = {}
