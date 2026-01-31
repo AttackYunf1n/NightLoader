@@ -125,7 +125,7 @@ local function MakeDraggable(topbar, frame)
     end)
 
     topbar.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement then
+        if (input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement) then
             dragInput = input
         end
     end)
@@ -225,7 +225,9 @@ function Phantom:Window(title)
     local ScreenGui = Create("ScreenGui", {
         Name = "PhantomUI",
         Parent = CoreGui,
-        ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+        ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+        ResetOnSpawn = false,
+        DisplayOrder = 999
     })
 
     local Main = Create("Frame", {
@@ -271,8 +273,6 @@ function Phantom:Window(title)
             RichText = true
         })
     })
-
-    MakeDraggable(TopBar, Main)
 
     local Sidebar = Create("Frame", {
         Parent = Main,
@@ -342,6 +342,35 @@ function Phantom:Window(title)
         end
     end)
 
+    local IsMobile = UserInputService.TouchEnabled
+    local DragConnection
+    
+    if IsMobile then
+        local DragButton = Create("TextButton", {
+            Parent = TopBar,
+            BackgroundTransparency = 1,
+            Position = UDim2.new(1, -50, 0, 0),
+            Size = UDim2.new(0, 50, 1, 0),
+            Text = "⤓",
+            TextColor3 = Theme.Accent,
+            Font = Enum.Font.GothamBold,
+            TextSize = 20
+        })
+        
+        DragButton.MouseButton1Down:Connect(function()
+            MakeDraggable(TopBar, Main)
+        end)
+        
+        DragButton.MouseButton1Up:Connect(function()
+            if DragConnection then
+                DragConnection:Disconnect()
+                DragConnection = nil
+            end
+        end)
+    else
+        MakeDraggable(TopBar, Main)
+    end
+
     local WindowObj = {}
     local Tabs = {}
     local First = true
@@ -392,7 +421,9 @@ function Phantom:Window(title)
                 Size = UDim2.new(0.5, -8, 1, 0),
                 ScrollBarThickness = 0,
                 BorderSizePixel = 0,
-                CanvasSize = UDim2.new(0, 0, 0, 0)
+                CanvasSize = UDim2.new(0, 0, 0, 0),
+                ScrollingEnabled = true,
+                ElasticBehavior = Enum.ElasticBehavior.Always
             }, {
                 Create("UIListLayout", {SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 12)}),
                 Create("UIPadding", {PaddingBottom = UDim.new(0, 10)})
@@ -404,7 +435,9 @@ function Phantom:Window(title)
                 Size = UDim2.new(0.5, -8, 1, 0),
                 ScrollBarThickness = 0,
                 BorderSizePixel = 0,
-                CanvasSize = UDim2.new(0, 0, 0, 0)
+                CanvasSize = UDim2.new(0, 0, 0, 0),
+                ScrollingEnabled = true,
+                ElasticBehavior = Enum.ElasticBehavior.Always
             }, {
                 Create("UIListLayout", {SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 12)}),
                 Create("UIPadding", {PaddingBottom = UDim.new(0, 10)})
@@ -623,8 +656,20 @@ function Phantom:Window(title)
                 local Track = SliderFrame.Track
                 if default then callback(Value) end
                 
+                local function UpdateSlider(input)
+                    local P = math.clamp((input.Position.X - Track.AbsolutePosition.X) / Track.AbsoluteSize.X, 0, 1)
+                    Value = math.floor((min + ((max - min) * P)) * 10) / 10
+                    SliderFrame.Val.Text = tostring(Value)
+                    Settings[text] = Value
+                    Tween(Track.Fill, {Size = UDim2.new(P, 0, 1, 0)}, TweenInfo.new(0.05))
+                    callback(Value)
+                end
+                
                 Track.InputBegan:Connect(function(input)
-                    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then Dragging = true end
+                    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then 
+                        Dragging = true
+                        UpdateSlider(input)
+                    end
                 end)
                 
                 UserInputService.InputEnded:Connect(function(input)
@@ -636,12 +681,7 @@ function Phantom:Window(title)
                 
                 UserInputService.InputChanged:Connect(function(input)
                     if Dragging and (input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement) then
-                        local P = math.clamp((input.Position.X - Track.AbsolutePosition.X) / Track.AbsoluteSize.X, 0, 1)
-                        Value = math.floor((min + ((max - min) * P)) * 10) / 10
-                        SliderFrame.Val.Text = tostring(Value)
-                        Settings[text] = Value
-                        Tween(Track.Fill, {Size = UDim2.new(P, 0, 1, 0)}, TweenInfo.new(0.05))
-                        callback(Value)
+                        UpdateSlider(input)
                     end
                 end)
             end
@@ -674,7 +714,8 @@ function Phantom:Window(title)
                         Text = "",
                         TextColor3 = Theme.Accent,
                         TextSize = 13,
-                        TextXAlignment = Enum.TextXAlignment.Right
+                        TextXAlignment = Enum.TextXAlignment.Right,
+                        ClearTextOnFocus = false
                     })
                 })
                 
