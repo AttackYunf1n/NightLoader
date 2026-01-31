@@ -79,6 +79,8 @@ local function GetIcon(name)
         return icons[name]
     elseif string.find(tostring(name), "rbxassetid://") then
         return name
+    elseif tonumber(name) then
+        return "rbxassetid://" .. tostring(name)
     else
         return icons.Home
     end
