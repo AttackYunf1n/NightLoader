@@ -72,7 +72,7 @@ local function GetIcon(name)
         Settings = "rbxassetid://125142287445982",
         Misc = "rbxassetid://74724520908176",
         Home = "rbxassetid://10747384394",
-        Target = "rbxassetid://72388072420613",
+        Target = "rbxassetid://129981008109101",
         User = "rbxassetid://120214019251678",
         Lock = "rbxassetid://72241908544847"
     }
