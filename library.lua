@@ -4,6 +4,7 @@ local HttpService = game:GetService("HttpService")
 local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
+local Mouse = LocalPlayer:GetMouse()
 local Camera = workspace.CurrentCamera
 
 local Phantom = {}
@@ -71,7 +72,7 @@ local function GetIcon(name)
         Settings = "rbxassetid://125142287445982",
         Misc = "rbxassetid://74724520908176",
         Home = "rbxassetid://10747384394",
-        Target = "rbxassetid://88733240786900",
+        Target = "rbxassetid://72388072420613",
         User = "rbxassetid://120214019251678",
         Lock = "rbxassetid://72241908544847"
     }
@@ -79,12 +80,10 @@ local function GetIcon(name)
         return icons[name]
     elseif string.find(tostring(name), "rbxassetid://") then
         return name
-    elseif string.find(tostring(name), "http://") then
-        return name
     elseif tonumber(name) then
         return "rbxassetid://" .. tostring(name)
     else
-        return "rbxassetid://10747384394"
+        return icons.Home
     end
 end
 
@@ -134,7 +133,7 @@ local function MakeDraggable(topbar, frame)
     UserInputService.InputChanged:Connect(function(input)
         if input == dragInput and dragging then
             local delta = input.Position - dragStart
-            frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+            Tween(frame, {Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)}, TweenInfo.new(0.05))
         end
     end)
 end
@@ -254,7 +253,7 @@ function Phantom:Window(title)
         Active = true
     }, {
         Create("ImageButton", {
-            Name = "ToggleButton",
+            Name = "Minimizer",
             BackgroundTransparency = 1,
             Position = UDim2.new(0, 15, 0.5, 0),
             Size = UDim2.new(0, 20, 0, 20),
@@ -317,72 +316,34 @@ function Phantom:Window(title)
         ClipsDescendants = true
     })
     
-    local IsHidden = false
-    local HiddenFrame = Create("Frame", {
-        Parent = ScreenGui,
-        BackgroundColor3 = Theme.Main,
-        BackgroundTransparency = Theme.MainTransparency,
-        Size = UDim2.new(0, 50, 0, 50),
-        Position = UDim2.new(0, 20, 0, 20),
-        BorderSizePixel = 0,
-        Visible = false,
-        Active = true,
-        ZIndex = 1000
-    }, {
-        Create("UICorner", {CornerRadius = UDim.new(0, 10)}),
-        Create("UIStroke", {Color = Theme.Stroke, Thickness = 1}),
-        Create("ImageButton", {
-            Name = "HiddenToggle",
-            BackgroundTransparency = 1,
-            Size = UDim2.new(1, 0, 1, 0),
-            Image = GetIcon("Target"),
-            ImageColor3 = Theme.Accent
-        })
-    })
-    
-    local function ToggleVisibility()
-        IsHidden = not IsHidden
-        
-        if IsHidden then
-            local mainPos = Main.Position
-            HiddenFrame.Position = mainPos
-            Main.Visible = false
-            HiddenFrame.Visible = true
-            HiddenFrame.Size = UDim2.new(0, 50, 0, 50)
+    local IsMinimized = false
+    local function ToggleMenu()
+        IsMinimized = not IsMinimized
+        if IsMinimized then
+            Sidebar.Visible = false
+            Container.Visible = false
+            Tween(Main, {Size = UDim2.new(0, 200, 0, 50)}, TweenInfo.new(0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.Out))
         else
-            local hiddenPos = HiddenFrame.Position
-            Main.Position = hiddenPos
-            HiddenFrame.Visible = false
-            Main.Visible = true
-            Tween(Main, {Size = WindowSize})
+            Tween(Main, {Size = WindowSize, Position = UDim2.new(0.5, 0, 0.5, 0)}, TweenInfo.new(0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.Out))
+            task.delay(0.3, function()
+                if not IsMinimized then
+                    Sidebar.Visible = true
+                    Container.Visible = true
+                end
+            end)
         end
     end
 
-    local function UpdateWindowSize()
-        local Viewport = Camera.ViewportSize
-        local newWindowSize = UDim2.new(0, 800, 0, 550)
+    TopBar.Minimizer.MouseButton1Click:Connect(ToggleMenu)
+    
+    UserInputService.InputBegan:Connect(function(input)
+        if input.KeyCode == Enum.KeyCode.LeftControl then
+            ToggleMenu()
+        end
+    end)
 
-        if Viewport.X < 500 then
-            newWindowSize = UDim2.new(0.95, 0, 0.9, 0)
-        elseif Viewport.X < 1100 then
-            newWindowSize = UDim2.new(0.85, 0, 0.75, 0)
-        end
-        
-        WindowSize = newWindowSize
-        if not IsHidden then
-            Main.Size = newWindowSize
-        end
-    end
-    
-    Camera:GetPropertyChangedSignal("ViewportSize"):Connect(UpdateWindowSize)
-    
-    TopBar.ToggleButton.MouseButton1Click:Connect(ToggleVisibility)
-    HiddenFrame.HiddenToggle.MouseButton1Click:Connect(ToggleVisibility)
-    
     local IsMobile = UserInputService.TouchEnabled
-    
-    MakeDraggable(HiddenFrame, HiddenFrame)
-    MakeDraggable(TopBar, Main)
+    local DragConnection
     
     if IsMobile then
         local DragButton = Create("TextButton", {
@@ -395,13 +356,20 @@ function Phantom:Window(title)
             Font = Enum.Font.GothamBold,
             TextSize = 20
         })
+        
+        DragButton.MouseButton1Down:Connect(function()
+            MakeDraggable(TopBar, Main)
+        end)
+        
+        DragButton.MouseButton1Up:Connect(function()
+            if DragConnection then
+                DragConnection:Disconnect()
+                DragConnection = nil
+            end
+        end)
+    else
+        MakeDraggable(TopBar, Main)
     end
-    
-    UserInputService.InputBegan:Connect(function(input)
-        if input.KeyCode == Enum.KeyCode.LeftControl then
-            ToggleVisibility()
-        end
-    end)
 
     local WindowObj = {}
     local Tabs = {}
