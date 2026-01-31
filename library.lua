@@ -5,6 +5,7 @@ local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local Mouse = LocalPlayer:GetMouse()
+local Camera = workspace.CurrentCamera
 
 local Phantom = {}
 
@@ -212,6 +213,15 @@ function Phantom:Window(title)
         CoreGui.PhantomUI:Destroy()
     end
 
+    local Viewport = Camera.ViewportSize
+    local WindowSize = UDim2.new(0, 800, 0, 550)
+
+    if Viewport.X < 500 then
+        WindowSize = UDim2.new(0.95, 0, 0.9, 0)
+    elseif Viewport.X < 1100 then
+        WindowSize = UDim2.new(0.85, 0, 0.75, 0)
+    end
+
     local ScreenGui = Create("ScreenGui", {
         Name = "PhantomUI",
         Parent = CoreGui,
@@ -224,7 +234,7 @@ function Phantom:Window(title)
         BackgroundColor3 = Theme.Main,
         BackgroundTransparency = Theme.MainTransparency,
         Position = UDim2.new(0.5, 0, 0.5, 0),
-        Size = UDim2.new(0, 800, 0, 550),
+        Size = WindowSize,
         AnchorPoint = Vector2.new(0.5, 0.5),
         BorderSizePixel = 0,
         ClipsDescendants = true,
@@ -314,7 +324,7 @@ function Phantom:Window(title)
             Container.Visible = false
             Tween(Main, {Size = UDim2.new(0, 200, 0, 50)}, TweenInfo.new(0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.Out))
         else
-            Tween(Main, {Size = UDim2.new(0, 800, 0, 550), Position = UDim2.new(0.5, 0, 0.5, 0)}, TweenInfo.new(0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.Out))
+            Tween(Main, {Size = WindowSize, Position = UDim2.new(0.5, 0, 0.5, 0)}, TweenInfo.new(0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.Out))
             task.delay(0.3, function()
                 if not IsMinimized then
                     Sidebar.Visible = true
