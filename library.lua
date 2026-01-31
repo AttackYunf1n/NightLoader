@@ -4,7 +4,6 @@ local HttpService = game:GetService("HttpService")
 local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
-local Mouse = LocalPlayer:GetMouse()
 local Camera = workspace.CurrentCamera
 
 local Phantom = {}
@@ -72,7 +71,7 @@ local function GetIcon(name)
         Settings = "rbxassetid://125142287445982",
         Misc = "rbxassetid://74724520908176",
         Home = "rbxassetid://10747384394",
-        Target = "rbxassetid://72388072420613",
+        Target = "http://www.roblox.com/asset/?id=88733240786900",
         User = "rbxassetid://120214019251678",
         Lock = "rbxassetid://72241908544847"
     }
@@ -80,10 +79,12 @@ local function GetIcon(name)
         return icons[name]
     elseif string.find(tostring(name), "rbxassetid://") then
         return name
+    elseif string.find(tostring(name), "http://") then
+        return name
     elseif tonumber(name) then
         return "rbxassetid://" .. tostring(name)
     else
-        return icons.Home
+        return "rbxassetid://10747384394"
     end
 end
 
@@ -133,7 +134,7 @@ local function MakeDraggable(topbar, frame)
     UserInputService.InputChanged:Connect(function(input)
         if input == dragInput and dragging then
             local delta = input.Position - dragStart
-            Tween(frame, {Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)}, TweenInfo.new(0.05))
+            frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
         end
     end)
 end
@@ -253,7 +254,7 @@ function Phantom:Window(title)
         Active = true
     }, {
         Create("ImageButton", {
-            Name = "Minimizer",
+            Name = "ToggleButton",
             BackgroundTransparency = 1,
             Position = UDim2.new(0, 15, 0.5, 0),
             Size = UDim2.new(0, 20, 0, 20),
@@ -316,60 +317,87 @@ function Phantom:Window(title)
         ClipsDescendants = true
     })
     
-    local IsMinimized = false
-    local function ToggleMenu()
-        IsMinimized = not IsMinimized
-        if IsMinimized then
-            Sidebar.Visible = false
-            Container.Visible = false
-            Tween(Main, {Size = UDim2.new(0, 200, 0, 50)}, TweenInfo.new(0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.Out))
+    local IsHidden = false
+    local HiddenFrame = Create("Frame", {
+        Parent = ScreenGui,
+        BackgroundColor3 = Theme.Main,
+        BackgroundTransparency = Theme.MainTransparency,
+        Size = UDim2.new(0, 60, 0, 60),
+        Position = UDim2.new(0, 20, 0, 20),
+        BorderSizePixel = 0,
+        Visible = false,
+        Active = true,
+        ZIndex = 1000
+    }, {
+        Create("UICorner", {CornerRadius = UDim.new(0, 12)}),
+        Create("UIStroke", {Color = Theme.Stroke, Thickness = 1}),
+        Create("ImageButton", {
+            Name = "HiddenToggle",
+            BackgroundTransparency = 1,
+            Size = UDim2.new(1, 0, 1, 0),
+            Image = GetIcon("Target"),
+            ImageColor3 = Theme.Accent
+        })
+    })
+    
+    MakeDraggable(HiddenFrame, HiddenFrame)
+    MakeDraggable(TopBar, Main)
+    
+    local function UpdateWindowSize()
+        local Viewport = Camera.ViewportSize
+        local newWindowSize = UDim2.new(0, 800, 0, 550)
+
+        if Viewport.X < 500 then
+            newWindowSize = UDim2.new(0.95, 0, 0.9, 0)
+        elseif Viewport.X < 1100 then
+            newWindowSize = UDim2.new(0.85, 0, 0.75, 0)
+        end
+        
+        if not IsHidden then
+            Main.Size = newWindowSize
+            WindowSize = newWindowSize
+        end
+    end
+    
+    Camera:GetPropertyChangedSignal("ViewportSize"):Connect(UpdateWindowSize)
+    
+    local function ToggleVisibility()
+        IsHidden = not IsHidden
+        
+        if IsHidden then
+            local mainPos = Main.Position
+            
+            if mainPos.X.Offset < 30 then
+                mainPos = UDim2.new(0, 20, mainPos.Y.Scale, mainPos.Y.Offset)
+            end
+            if mainPos.Y.Offset < 30 then
+                mainPos = UDim2.new(mainPos.X.Scale, mainPos.X.Offset, 0, 20)
+            end
+            
+            HiddenFrame.Position = mainPos
+            HiddenFrame.Size = UDim2.new(0, 60, 0, 60)
+            
+            Main.Visible = false
+            HiddenFrame.Visible = true
         else
-            Tween(Main, {Size = WindowSize, Position = UDim2.new(0.5, 0, 0.5, 0)}, TweenInfo.new(0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.Out))
-            task.delay(0.3, function()
-                if not IsMinimized then
-                    Sidebar.Visible = true
-                    Container.Visible = true
-                end
-            end)
+            local hiddenPos = HiddenFrame.Position
+            
+            Main.Position = hiddenPos
+            Main.Size = WindowSize
+            
+            HiddenFrame.Visible = false
+            Main.Visible = true
         end
     end
 
-    TopBar.Minimizer.MouseButton1Click:Connect(ToggleMenu)
+    TopBar.ToggleButton.MouseButton1Click:Connect(ToggleVisibility)
+    HiddenFrame.HiddenToggle.MouseButton1Click:Connect(ToggleVisibility)
     
     UserInputService.InputBegan:Connect(function(input)
-        if input.KeyCode == Enum.KeyCode.LeftControl then
-            ToggleMenu()
+        if input.KeyCode == Enum.KeyCode.RightControl then
+            ToggleVisibility()
         end
     end)
-
-    local IsMobile = UserInputService.TouchEnabled
-    local DragConnection
-    
-    if IsMobile then
-        local DragButton = Create("TextButton", {
-            Parent = TopBar,
-            BackgroundTransparency = 1,
-            Position = UDim2.new(1, -50, 0, 0),
-            Size = UDim2.new(0, 50, 1, 0),
-            Text = "⤓",
-            TextColor3 = Theme.Accent,
-            Font = Enum.Font.GothamBold,
-            TextSize = 20
-        })
-        
-        DragButton.MouseButton1Down:Connect(function()
-            MakeDraggable(TopBar, Main)
-        end)
-        
-        DragButton.MouseButton1Up:Connect(function()
-            if DragConnection then
-                DragConnection:Disconnect()
-                DragConnection = nil
-            end
-        end)
-    else
-        MakeDraggable(TopBar, Main)
-    end
 
     local WindowObj = {}
     local Tabs = {}
