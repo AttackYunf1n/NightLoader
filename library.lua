@@ -319,17 +319,20 @@ function Phantom:Window(title)
     })
     
     local IsHidden = false
+    local CurrentWindowPosition = UDim2.new(0.5, 0, 0.5, 0)
+    Main.Position = CurrentWindowPosition
+    
     local HiddenFrame = Create("Frame", {
         Parent = ScreenGui,
         BackgroundColor3 = Theme.Main,
         BackgroundTransparency = Theme.MainTransparency,
-        Size = UDim2.new(0, 50, 0, 50),
-        Position = UDim2.new(0.5, 0, 0.5, 0),
+        Size = UDim2.new(0, 60, 0, 60),
+        Position = CurrentWindowPosition,
         AnchorPoint = Vector2.new(0.5, 0.5),
         BorderSizePixel = 0,
         Visible = false,
         Active = true,
-        ZIndex = 1000
+        ZIndex = 10000
     }, {
         Create("UICorner", {CornerRadius = UDim.new(0, 10)}),
         Create("UIStroke", {Color = Theme.Stroke, Thickness = 1}),
@@ -348,11 +351,13 @@ function Phantom:Window(title)
         IsHidden = not IsHidden
         
         if IsHidden then
-            HiddenFrame.Position = Main.Position
-            Main.Visible = false
+            CurrentWindowPosition = Main.Position
+            HiddenFrame.Position = CurrentWindowPosition
             HiddenFrame.Visible = true
+            Main.Visible = false
         else
             Main.Position = HiddenFrame.Position
+            CurrentWindowPosition = Main.Position
             HiddenFrame.Visible = false
             Main.Visible = true
             Main.Size = WindowSize
@@ -382,7 +387,7 @@ function Phantom:Window(title)
     
     local IsMobile = UserInputService.TouchEnabled
     
-    MakeDraggable(HiddenFrame, HiddenFrame)
+    MakeDraggable(HiddenFrame.HiddenToggle, HiddenFrame)
     MakeDraggable(TopBar, Main)
     
     if IsMobile then
