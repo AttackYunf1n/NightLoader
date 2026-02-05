@@ -352,12 +352,12 @@ function Phantom:Window(title)
         
         if IsHidden then
             CurrentWindowPosition = Main.Position
-            HiddenFrame.Position = CurrentWindowPosition
+            HiddenFrame.Position = Main.Position
             HiddenFrame.Visible = true
             Main.Visible = false
         else
             Main.Position = HiddenFrame.Position
-            CurrentWindowPosition = Main.Position
+            CurrentWindowPosition = HiddenFrame.Position
             HiddenFrame.Visible = false
             Main.Visible = true
             Main.Size = WindowSize
@@ -1215,6 +1215,195 @@ function Phantom:Window(title)
                     Tween(DropFrame, {Size = UDim2.new(1, 0, 0, Expanded and (38 + #list * 30) or 38)})
                     Tween(DropFrame.Arrow, {Rotation = Expanded and 180 or 0})
                 end)
+            end
+
+            function SectionObj:MultiDropdown(text, list, default, callback)
+                if Settings[text] then default = Settings[text] end
+                local Selected = default or {}
+                local Expanded = false
+
+                local function GetDisplayText()
+                    if #Selected == 0 then
+                        return "None"
+                    elseif #Selected == #list then
+                        return "All"
+                    elseif #Selected <= 2 then
+                        return table.concat(Selected, ", ")
+                    else
+                        return Selected[1] .. ", +" .. (#Selected - 1)
+                    end
+                end
+
+                local DropFrame = Create("Frame", {
+                    Parent = Content,
+                    BackgroundColor3 = Theme.Main,
+                    Size = UDim2.new(1, 0, 0, 38),
+                    ClipsDescendants = true,
+                    ZIndex = 5
+                }, {
+                    Create("UICorner", {CornerRadius = UDim.new(0, 8)}),
+                    Create("UIStroke", {Color = Theme.Stroke, Thickness = 1}),
+                    Create("TextLabel", {
+                        BackgroundTransparency = 1,
+                        Position = UDim2.new(0, 12, 0, 0),
+                        Size = UDim2.new(0.5, 0, 0, 38),
+                        Font = Enum.Font.Gotham,
+                        Text = text,
+                        TextColor3 = Theme.Text,
+                        TextSize = 13,
+                        TextXAlignment = Enum.TextXAlignment.Left
+                    }),
+                    Create("TextLabel", {
+                        Name = "Val",
+                        BackgroundTransparency = 1,
+                        Position = UDim2.new(0.5, 0, 0, 0),
+                        Size = UDim2.new(0.5, -35, 0, 38),
+                        Font = Enum.Font.Gotham,
+                        Text = GetDisplayText(),
+                        TextColor3 = Theme.Accent,
+                        TextSize = 13,
+                        TextXAlignment = Enum.TextXAlignment.Right
+                    }),
+                    Create("ImageButton", {
+                        Name = "Arrow",
+                        BackgroundTransparency = 1,
+                        Position = UDim2.new(1, -20, 0, 19),
+                        Size = UDim2.new(0, 16, 0, 16),
+                        AnchorPoint = Vector2.new(0.5, 0.5),
+                        Image = "rbxassetid://6031091004",
+                        ImageColor3 = Theme.TextDark,
+                        ZIndex = 6
+                    }),
+                    Create("Frame", {
+                        Name = "List",
+                        BackgroundTransparency = 1,
+                        Position = UDim2.new(0, 0, 0, 38),
+                        Size = UDim2.new(1, 0, 0, 0)
+                    }, {
+                        Create("UIListLayout", {SortOrder = Enum.SortOrder.LayoutOrder})
+                    })
+                })
+
+                local function IsSelected(item)
+                    for _, v in pairs(Selected) do
+                        if v == item then return true end
+                    end
+                    return false
+                end
+
+                local function ToggleItem(item)
+                    local found = false
+                    for i, v in pairs(Selected) do
+                        if v == item then
+                            table.remove(Selected, i)
+                            found = true
+                            break
+                        end
+                    end
+                    if not found then
+                        table.insert(Selected, item)
+                    end
+                    DropFrame.Val.Text = GetDisplayText()
+                    Settings[text] = Selected
+                    SaveSettings()
+                    callback(Selected)
+                end
+
+                local AllButton = Create("TextButton", {
+                    Parent = DropFrame.List,
+                    BackgroundColor3 = Theme.Main,
+                    BackgroundTransparency = 0,
+                    Size = UDim2.new(1, 0, 0, 30),
+                    Font = Enum.Font.GothamBold,
+                    Text = "  Select All",
+                    TextColor3 = Theme.Accent,
+                    TextSize = 12,
+                    TextXAlignment = Enum.TextXAlignment.Left,
+                    AutoButtonColor = false,
+                    ZIndex = 6,
+                    LayoutOrder = 0
+                })
+
+                AllButton.MouseEnter:Connect(function()
+                    Tween(AllButton, {BackgroundColor3 = Theme.Section})
+                end)
+                AllButton.MouseLeave:Connect(function()
+                    Tween(AllButton, {BackgroundColor3 = Theme.Main})
+                end)
+
+                AllButton.MouseButton1Click:Connect(function()
+                    if #Selected == #list then
+                        Selected = {}
+                    else
+                        Selected = {}
+                        for _, item in pairs(list) do
+                            table.insert(Selected, item)
+                        end
+                    end
+                    DropFrame.Val.Text = GetDisplayText()
+                    Settings[text] = Selected
+                    SaveSettings()
+                    callback(Selected)
+
+                    for _, child in pairs(DropFrame.List:GetChildren()) do
+                        if child:IsA("TextButton") and child ~= AllButton then
+                            local itemName = child.Text:gsub("^  ", ""):gsub(" ✓$", "")
+                            if IsSelected(itemName) then
+                                child.Text = "  " .. itemName .. " ✓"
+                                child.TextColor3 = Theme.Accent
+                            else
+                                child.Text = "  " .. itemName
+                                child.TextColor3 = Theme.TextDark
+                            end
+                        end
+                    end
+                end)
+
+                for idx, item in pairs(list) do
+                    local isSelected = IsSelected(item)
+                    local ItemBtn = Create("TextButton", {
+                        Parent = DropFrame.List,
+                        BackgroundColor3 = Theme.Main,
+                        BackgroundTransparency = 0,
+                        Size = UDim2.new(1, 0, 0, 30),
+                        Font = Enum.Font.Gotham,
+                        Text = isSelected and ("  " .. item .. " ✓") or ("  " .. item),
+                        TextColor3 = isSelected and Theme.Accent or Theme.TextDark,
+                        TextSize = 12,
+                        TextXAlignment = Enum.TextXAlignment.Left,
+                        AutoButtonColor = false,
+                        ZIndex = 6,
+                        LayoutOrder = idx
+                    })
+
+                    ItemBtn.MouseEnter:Connect(function()
+                        Tween(ItemBtn, {BackgroundColor3 = Theme.Section, TextColor3 = Theme.Text})
+                    end)
+                    ItemBtn.MouseLeave:Connect(function()
+                        local selected = IsSelected(item)
+                        Tween(ItemBtn, {
+                            BackgroundColor3 = Theme.Main, 
+                            TextColor3 = selected and Theme.Accent or Theme.TextDark
+                        })
+                    end)
+
+                    ItemBtn.MouseButton1Click:Connect(function()
+                        ToggleItem(item)
+                        local selected = IsSelected(item)
+                        ItemBtn.Text = selected and ("  " .. item .. " ✓") or ("  " .. item)
+                        ItemBtn.TextColor3 = selected and Theme.Accent or Theme.TextDark
+                    end)
+                end
+
+                DropFrame.Arrow.MouseButton1Click:Connect(function()
+                    Expanded = not Expanded
+                    Tween(DropFrame, {Size = UDim2.new(1, 0, 0, Expanded and (38 + (#list + 1) * 30) or 38)})
+                    Tween(DropFrame.Arrow, {Rotation = Expanded and 180 or 0})
+                end)
+
+                if default and #default > 0 then 
+                    callback(Selected) 
+                end
             end
 
             return SectionObj
