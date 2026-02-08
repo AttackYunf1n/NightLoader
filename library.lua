@@ -1,3 +1,4 @@
+
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local HttpService = game:GetService("HttpService")
@@ -7,7 +8,6 @@ local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
 local Phantom = {}
-
 local Theme = {
     Main = Color3.fromRGB(10, 10, 10),
     Sidebar = Color3.fromRGB(15, 15, 15),
@@ -107,26 +107,34 @@ local function ShortenKey(keyName)
     return replacements[keyName] or keyName
 end
 
-local function MakeDraggable(topbar, frame)
-    topbar.Active = true
-    local dragging, dragInput, dragStart, startPos
+local function MakeDraggable(trigger, frame, callback)
+    trigger.Active = true
+    local dragging = false
+    local dragInput, dragStart, startPos
+    local hasMoved = false
 
-    topbar.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+    trigger.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             dragging = true
+            hasMoved = false
             dragStart = input.Position
             startPos = frame.Position
             
-            input.Changed:Connect(function()
+            local inputCon
+            inputCon = input.Changed:Connect(function()
                 if input.UserInputState == Enum.UserInputState.End then
                     dragging = false
+                    inputCon:Disconnect()
+                    if not hasMoved and callback then
+                        callback()
+                    end
                 end
             end)
         end
     end)
 
-    topbar.InputChanged:Connect(function(input)
-        if (input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement) then
+    trigger.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
             dragInput = input
         end
     end)
@@ -134,7 +142,10 @@ local function MakeDraggable(topbar, frame)
     UserInputService.InputChanged:Connect(function(input)
         if input == dragInput and dragging then
             local delta = input.Position - dragStart
-            frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+            if delta.Magnitude > 5 then
+                hasMoved = true
+                frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+            end
         end
     end)
 end
@@ -142,7 +153,7 @@ end
 function Phantom:Notify(title, text, duration)
     local ScreenGui = CoreGui:FindFirstChild("PhantomUI")
     if not ScreenGui then return end
-    
+
     local Container = ScreenGui:FindFirstChild("NotifContainer")
     if not Container then
         Container = Create("Frame", {
@@ -160,7 +171,6 @@ function Phantom:Notify(title, text, duration)
             })
         })
     end
-
     local NotifFrame = Create("Frame", {
         Parent = Container,
         BackgroundColor3 = Theme.Section,
@@ -199,9 +209,9 @@ function Phantom:Notify(title, text, duration)
             ZIndex = 21
         })
     })
-    
+
     Tween(NotifFrame, {Size = UDim2.new(1, 0, 0, 70)})
-    
+
     task.delay(duration or 3, function()
         Tween(NotifFrame, {Size = UDim2.new(1, 0, 0, 0), BackgroundTransparency = 1})
         wait(0.3)
@@ -213,16 +223,13 @@ function Phantom:Window(title)
     if CoreGui:FindFirstChild("PhantomUI") then
         CoreGui.PhantomUI:Destroy()
     end
-
     local Viewport = Camera.ViewportSize
     local WindowSize = UDim2.new(0, 800, 0, 550)
-
     if Viewport.X < 500 then
         WindowSize = UDim2.new(0.95, 0, 0.9, 0)
     elseif Viewport.X < 1100 then
         WindowSize = UDim2.new(0.85, 0, 0.75, 0)
     end
-
     local ScreenGui = Create("ScreenGui", {
         Name = "PhantomUI",
         Parent = CoreGui,
@@ -231,7 +238,6 @@ function Phantom:Window(title)
         DisplayOrder = 999,
         IgnoreGuiInset = true
     })
-
     local Main = Create("Frame", {
         Name = "Main",
         Parent = ScreenGui,
@@ -247,21 +253,22 @@ function Phantom:Window(title)
         Create("UICorner", {CornerRadius = UDim.new(0, 14)}),
         Create("UIStroke", {Color = Theme.Stroke, Thickness = 1})
     })
-
     local TopBar = Create("Frame", {
         Parent = Main,
         BackgroundTransparency = 1,
         Size = UDim2.new(1, 0, 0, 50),
         Active = true
     }, {
-        Create("ImageButton", {
+        Create("TextButton", {
             Name = "ToggleButton",
             BackgroundTransparency = 1,
             Position = UDim2.new(0, 15, 0.5, 0),
-            Size = UDim2.new(0, 20, 0, 20),
+            Size = UDim2.new(0, 25, 0, 25),
             AnchorPoint = Vector2.new(0, 0.5),
-            Image = GetIcon("Target"),
-            ImageColor3 = Theme.Accent
+            Text = "X",
+            TextColor3 = Theme.Accent,
+            Font = Enum.Font.GothamBold,
+            TextSize = 18
         }),
         Create("TextLabel", {
             BackgroundTransparency = 1,
@@ -275,7 +282,6 @@ function Phantom:Window(title)
             RichText = true
         })
     })
-
     local Sidebar = Create("Frame", {
         Parent = Main,
         BackgroundColor3 = Theme.Sidebar,
@@ -296,7 +302,6 @@ function Phantom:Window(title)
             ZIndex = 2
         }, {Create("UIStroke", {Color = Theme.Stroke, Thickness = 1})})
     })
-
     local SidebarContent = Create("Frame", {
         Parent = Sidebar,
         BackgroundTransparency = 1,
@@ -309,7 +314,6 @@ function Phantom:Window(title)
         }),
         Create("UIPadding", {PaddingTop = UDim.new(0, 10), PaddingLeft = UDim.new(0, 15), PaddingRight = UDim.new(0, 15)})
     })
-
     local Container = Create("Frame", {
         Parent = Main,
         BackgroundTransparency = 1,
@@ -317,11 +321,11 @@ function Phantom:Window(title)
         Size = UDim2.new(1, -230, 1, -75),
         ClipsDescendants = true
     })
-    
+
     local IsHidden = false
     local CurrentWindowPosition = UDim2.new(0.5, 0, 0.5, 0)
     Main.Position = CurrentWindowPosition
-    
+
     local HiddenFrame = Create("Frame", {
         Parent = ScreenGui,
         BackgroundColor3 = Theme.Main,
@@ -336,20 +340,21 @@ function Phantom:Window(title)
     }, {
         Create("UICorner", {CornerRadius = UDim.new(0, 10)}),
         Create("UIStroke", {Color = Theme.Stroke, Thickness = 1}),
-        Create("ImageButton", {
+        Create("TextButton", {
             Name = "HiddenToggle",
             BackgroundTransparency = 1,
             Size = UDim2.new(1, 0, 1, 0),
-            Image = GetIcon("Target"),
-            ImageColor3 = Theme.Accent,
+            Text = "Open",
+            TextColor3 = Theme.Accent,
+            Font = Enum.Font.GothamBold,
+            TextSize = 14,
             AnchorPoint = Vector2.new(0.5, 0.5),
             Position = UDim2.new(0.5, 0, 0.5, 0)
         })
     })
-    
+
     local function ToggleVisibility()
         IsHidden = not IsHidden
-        
         if IsHidden then
             CurrentWindowPosition = Main.Position
             HiddenFrame.Position = Main.Position
@@ -367,29 +372,25 @@ function Phantom:Window(title)
     local function UpdateWindowSize()
         local Viewport = Camera.ViewportSize
         local newWindowSize = UDim2.new(0, 800, 0, 550)
-
         if Viewport.X < 500 then
             newWindowSize = UDim2.new(0.95, 0, 0.9, 0)
         elseif Viewport.X < 1100 then
             newWindowSize = UDim2.new(0.85, 0, 0.75, 0)
         end
-        
         WindowSize = newWindowSize
         if not IsHidden then
             Main.Size = newWindowSize
         end
     end
-    
+
     Camera:GetPropertyChangedSignal("ViewportSize"):Connect(UpdateWindowSize)
     
-    TopBar.ToggleButton.MouseButton1Click:Connect(ToggleVisibility)
-    HiddenFrame.HiddenToggle.MouseButton1Click:Connect(ToggleVisibility)
-    
-    local IsMobile = UserInputService.TouchEnabled
-    
-    MakeDraggable(HiddenFrame.HiddenToggle, HiddenFrame)
+    MakeDraggable(HiddenFrame.HiddenToggle, HiddenFrame, ToggleVisibility)
     MakeDraggable(TopBar, Main)
-    
+    TopBar.ToggleButton.MouseButton1Click:Connect(ToggleVisibility)
+
+    local IsMobile = UserInputService.TouchEnabled
+
     if IsMobile then
         local DragButton = Create("TextButton", {
             Parent = TopBar,
@@ -402,13 +403,13 @@ function Phantom:Window(title)
             TextSize = 20
         })
     end
-    
+
     UserInputService.InputBegan:Connect(function(input)
         if input.KeyCode == Enum.KeyCode.LeftControl then
             ToggleVisibility()
         end
     end)
-
+    
     local WindowObj = {}
     local Tabs = {}
     local First = true
@@ -416,7 +417,6 @@ function Phantom:Window(title)
     function WindowObj:Tab(name, icon)
         local TabObj = {}
         local TabData = {Selected = false}
-
         local TabBtn = Create("TextButton", {
             Parent = SidebarContent,
             BackgroundColor3 = Theme.Main,
@@ -446,7 +446,6 @@ function Phantom:Window(title)
                 TextXAlignment = Enum.TextXAlignment.Left
             })
         })
-
         local TabPage = Create("ScrollingFrame", {
             Parent = Container,
             BackgroundTransparency = 1,
@@ -466,7 +465,6 @@ function Phantom:Window(title)
             }),
             Create("UIPadding", {PaddingBottom = UDim.new(0, 10)})
         })
-
         local LeftColumn = Create("Frame", {
             Parent = TabPage,
             BackgroundTransparency = 1,
@@ -478,7 +476,6 @@ function Phantom:Window(title)
                 Padding = UDim.new(0, 12)
             })
         })
-
         local RightColumn = Create("Frame", {
             Parent = TabPage,
             BackgroundTransparency = 1,
@@ -490,17 +487,14 @@ function Phantom:Window(title)
                 Padding = UDim.new(0, 12)
             })
         })
-
         local function UpdateCanvas()
             local leftHeight = LeftColumn.UIListLayout.AbsoluteContentSize.Y
             local rightHeight = RightColumn.UIListLayout.AbsoluteContentSize.Y
             local maxHeight = math.max(leftHeight, rightHeight)
             TabPage.CanvasSize = UDim2.new(0, 0, 0, maxHeight + 20)
         end
-
         LeftColumn.UIListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(UpdateCanvas)
         RightColumn.UIListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(UpdateCanvas)
-
         local function Update()
             if TabData.Selected then
                 Tween(TabBtn, {BackgroundTransparency = 0, BackgroundColor3 = Theme.Section})
@@ -512,7 +506,6 @@ function Phantom:Window(title)
                 Tween(TabBtn.Title, {TextColor3 = Theme.TextDark})
             end
         end
-
         TabBtn.MouseButton1Click:Connect(function()
             for _, t in pairs(Tabs) do
                 t.Selected = false
@@ -523,7 +516,6 @@ function Phantom:Window(title)
             Update()
             TabPage.Visible = true
         end)
-
         TabData.Update = Update
         TabData.Page = TabPage
         Tabs[#Tabs + 1] = TabData
@@ -538,7 +530,6 @@ function Phantom:Window(title)
         function TabObj:Section(title, side)
             local Parent = (side == "Right") and RightColumn or LeftColumn
             local SectionObj = {}
-
             local SectionFrame = Create("Frame", {
                 Parent = Parent,
                 BackgroundColor3 = Theme.Section,
@@ -559,7 +550,6 @@ function Phantom:Window(title)
                     TextXAlignment = Enum.TextXAlignment.Left
                 })
             })
-
             local Content = Create("Frame", {
                 Parent = SectionFrame,
                 BackgroundTransparency = 1,
@@ -569,11 +559,9 @@ function Phantom:Window(title)
                 Create("UIListLayout", {SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 6)}),
                 Create("UIPadding", {PaddingLeft = UDim.new(0, 10), PaddingRight = UDim.new(0, 10), PaddingBottom = UDim.new(0, 10)})
             })
-
             local function ResizeSection()
                 SectionFrame.Size = UDim2.new(1, 0, 0, Content.UIListLayout.AbsoluteContentSize.Y + 50)
             end
-
             Content.UIListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(ResizeSection)
             ResizeSection()
 
@@ -614,9 +602,7 @@ function Phantom:Window(title)
                         }, {Create("UICorner", {CornerRadius = UDim.new(1, 0)})})
                     })
                 })
-                
                 if Toggled then callback(Toggled) end
-
                 ToggleBtn.MouseButton1Click:Connect(function()
                     Toggled = not Toggled
                     Settings[text] = Toggled
@@ -646,7 +632,6 @@ function Phantom:Window(title)
                         TextSize = 13
                     })
                 })
-
                 Btn.MouseEnter:Connect(function() Tween(Btn, {BackgroundColor3 = Theme.Stroke}) end)
                 Btn.MouseLeave:Connect(function() Tween(Btn, {BackgroundColor3 = Theme.Main}) end)
                 Btn.MouseButton1Click:Connect(function() callback() end)
@@ -656,7 +641,6 @@ function Phantom:Window(title)
                 if Settings[text] ~= nil then default = Settings[text] end
                 local Value = default or min
                 local Dragging = false
-
                 local SliderFrame = Create("Frame", {
                     Parent = Content,
                     BackgroundColor3 = Theme.Main,
@@ -699,7 +683,6 @@ function Phantom:Window(title)
                         }, {Create("UICorner", {CornerRadius = UDim.new(1, 0)})})
                     })
                 })
-
                 local Track = SliderFrame.Track
                 if default then callback(Value) end
                 
@@ -770,7 +753,6 @@ function Phantom:Window(title)
                     BoxFrame.TextBox.Text = Settings[text]
                     callback(Settings[text])
                 end
-
                 BoxFrame.TextBox.FocusLost:Connect(function()
                     Settings[text] = BoxFrame.TextBox.Text
                     SaveSettings()
@@ -783,7 +765,6 @@ function Phantom:Window(title)
                 local Mode = "Toggle"
                 local Binding = false
                 local Active = false
-
                 if Settings[text] then
                     if Settings[text].Key then
                         if pcall(function() return Enum.KeyCode[Settings[text].Key] end) then
@@ -794,7 +775,6 @@ function Phantom:Window(title)
                     end
                     if Settings[text].Mode then Mode = Settings[text].Mode end
                 end
-
                 local BindFrame = Create("Frame", {
                     Parent = Content,
                     BackgroundColor3 = Theme.Main,
@@ -814,7 +794,6 @@ function Phantom:Window(title)
                         TextXAlignment = Enum.TextXAlignment.Left
                     })
                 })
-
                 local BindBtn = Create("TextButton", {
                     Parent = BindFrame,
                     BackgroundColor3 = Theme.Section,
@@ -826,7 +805,6 @@ function Phantom:Window(title)
                     TextSize = 12,
                     AutoButtonColor = false
                 }, {Create("UICorner", {CornerRadius = UDim.new(0, 6)}), Create("UIStroke", {Color = Theme.Stroke, Thickness = 1})})
-
                 local Context = Create("Frame", {
                     Parent = BindFrame,
                     BackgroundColor3 = Theme.Main,
@@ -840,7 +818,6 @@ function Phantom:Window(title)
                     Create("UIStroke", {Color = Theme.Stroke, Thickness = 1}),
                     Create("UIListLayout", {SortOrder = Enum.SortOrder.LayoutOrder})
                 })
-
                 local function MakeModeBtn(name, modeVal)
                     local btn = Create("TextButton", {
                         Parent = Context,
@@ -856,7 +833,6 @@ function Phantom:Window(title)
                     
                     btn.MouseEnter:Connect(function() if Mode ~= modeVal then btn.TextColor3 = Theme.Text end end)
                     btn.MouseLeave:Connect(function() if Mode ~= modeVal then btn.TextColor3 = Theme.TextDark end end)
-
                     btn.MouseButton1Click:Connect(function()
                         Mode = modeVal
                         Settings[text] = {Key = Key.Name, Mode = Mode}
@@ -873,16 +849,13 @@ function Phantom:Window(title)
                         end
                     end)
                 end
-
                 MakeModeBtn("Toggle", "Toggle")
                 MakeModeBtn("Hold", "Hold")
-
                 BindBtn.MouseButton1Click:Connect(function()
                     Binding = true
                     BindBtn.Text = "..."
                     BindBtn.TextColor3 = Theme.Accent
                 end)
-
                 BindBtn.MouseButton2Click:Connect(function()
                     if Context.Visible then
                         Tween(Context, {Size = UDim2.new(0, 50, 0, 0)})
@@ -893,7 +866,6 @@ function Phantom:Window(title)
                         Tween(Context, {Size = UDim2.new(0, 50, 0, 50)})
                     end
                 end)
-
                 UserInputService.InputBegan:Connect(function(input, processed)
                     if Binding then
                         local bindingInput
@@ -902,7 +874,6 @@ function Phantom:Window(title)
                         elseif input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.MouseButton2 or input.UserInputType == Enum.UserInputType.MouseButton3 then
                             bindingInput = input.UserInputType
                         end
-
                         if bindingInput and bindingInput ~= Enum.KeyCode.Unknown then
                             Key = bindingInput
                             Binding = false
@@ -924,7 +895,6 @@ function Phantom:Window(title)
                         end
                     end
                 end)
-
                 UserInputService.InputEnded:Connect(function(input)
                     local checkInput = (input.UserInputType == Enum.UserInputType.Keyboard) and input.KeyCode or input.UserInputType
                     if checkInput == Key and Mode == "Hold" then
@@ -945,7 +915,6 @@ function Phantom:Window(title)
                 local Expanded = false
                 local DraggingColor = false
                 local DraggingHue = false
-
                 local PickerFrame = Create("Frame", {
                     Parent = Content,
                     BackgroundColor3 = Theme.Main,
@@ -981,7 +950,6 @@ function Phantom:Window(title)
                     Size = UDim2.new(1, -20, 0, 140),
                     Visible = false
                 })
-
                 local SVBox = Create("ImageButton", {
                     Parent = Container,
                     BackgroundColor3 = Color3.fromHSV(H, 1, 1),
@@ -1032,7 +1000,6 @@ function Phantom:Window(title)
                         ZIndex = 4
                     }, {Create("UICorner", {CornerRadius = UDim.new(1, 0)}), Create("UIStroke", {Thickness = 1, Color = Color3.new(0,0,0)})})
                 })
-
                 local HueBar = Create("ImageButton", {
                     Parent = Container,
                     BackgroundColor3 = Color3.new(1,1,1),
@@ -1059,9 +1026,7 @@ function Phantom:Window(title)
                         BorderSizePixel = 0
                     }, {Create("UIStroke", {Thickness = 1, Color = Color3.new(0,0,0)})})
                 })
-
                 if default then callback(Color) end
-
                 local function UpdateColor()
                     Color = Color3.fromHSV(H, S, V)
                     PickerFrame.Preview.BackgroundColor3 = Color
@@ -1069,19 +1034,16 @@ function Phantom:Window(title)
                     Settings[text] = {R = Color.R, G = Color.G, B = Color.B}
                     callback(Color)
                 end
-
                 SVBox.InputBegan:Connect(function(input)
                     if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
                         DraggingColor = true
                     end
                 end)
-
                 HueBar.InputBegan:Connect(function(input)
                     if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
                         DraggingHue = true
                     end
                 end)
-
                 UserInputService.InputEnded:Connect(function(input)
                     if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
                         DraggingColor = false
@@ -1089,7 +1051,6 @@ function Phantom:Window(title)
                         SaveSettings()
                     end
                 end)
-
                 UserInputService.InputChanged:Connect(function(input)
                     if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement then
                         if DraggingColor then
@@ -1111,7 +1072,6 @@ function Phantom:Window(title)
                         end
                     end
                 end)
-
                 PickerFrame.Preview.MouseButton1Click:Connect(function()
                     Expanded = not Expanded
                     Container.Visible = Expanded
@@ -1123,7 +1083,6 @@ function Phantom:Window(title)
                 if Settings[text] then default = Settings[text] end
                 local Selected = default or list[1]
                 local Expanded = false
-
                 local DropFrame = Create("Frame", {
                     Parent = Content,
                     BackgroundColor3 = Theme.Main,
@@ -1174,8 +1133,24 @@ function Phantom:Window(title)
                     })
                 })
                 
-                if default then callback(Selected) end
+                local Interact = Create("TextButton", {
+                    Parent = DropFrame,
+                    BackgroundTransparency = 1,
+                    Size = UDim2.new(1, 0, 0, 38),
+                    Text = "",
+                    ZIndex = 5
+                })
+                
+                local function ToggleDrop()
+                    Expanded = not Expanded
+                    Tween(DropFrame, {Size = UDim2.new(1, 0, 0, Expanded and (38 + #list * 30) or 38)})
+                    Tween(DropFrame.Arrow, {Rotation = Expanded and 180 or 0})
+                end
 
+                Interact.MouseButton1Click:Connect(ToggleDrop)
+                DropFrame.Arrow.MouseButton1Click:Connect(ToggleDrop)
+
+                if default then callback(Selected) end
                 for _, item in pairs(list) do
                     local ItemBtn = Create("TextButton", {
                         Parent = DropFrame.List,
@@ -1190,14 +1165,12 @@ function Phantom:Window(title)
                         AutoButtonColor = false,
                         ZIndex = 6
                     })
-
                     ItemBtn.MouseEnter:Connect(function()
                         Tween(ItemBtn, {BackgroundColor3 = Theme.Section, TextColor3 = Theme.Text})
                     end)
                     ItemBtn.MouseLeave:Connect(function()
                         Tween(ItemBtn, {BackgroundColor3 = Theme.Main, TextColor3 = Theme.TextDark})
                     end)
-
                     ItemBtn.MouseButton1Click:Connect(function()
                         Selected = item
                         DropFrame.Val.Text = Selected
@@ -1209,19 +1182,12 @@ function Phantom:Window(title)
                         callback(item)
                     end)
                 end
-
-                DropFrame.Arrow.MouseButton1Click:Connect(function()
-                    Expanded = not Expanded
-                    Tween(DropFrame, {Size = UDim2.new(1, 0, 0, Expanded and (38 + #list * 30) or 38)})
-                    Tween(DropFrame.Arrow, {Rotation = Expanded and 180 or 0})
-                end)
             end
 
             function SectionObj:MultiDropdown(text, list, default, callback)
                 if Settings[text] then default = Settings[text] end
                 local Selected = default or {}
                 local Expanded = false
-
                 local function GetDisplayText()
                     if #Selected == 0 then
                         return "None"
@@ -1233,7 +1199,6 @@ function Phantom:Window(title)
                         return Selected[1] .. ", +" .. (#Selected - 1)
                     end
                 end
-
                 local DropFrame = Create("Frame", {
                     Parent = Content,
                     BackgroundColor3 = Theme.Main,
@@ -1283,6 +1248,23 @@ function Phantom:Window(title)
                         Create("UIListLayout", {SortOrder = Enum.SortOrder.LayoutOrder})
                     })
                 })
+                
+                local Interact = Create("TextButton", {
+                    Parent = DropFrame,
+                    BackgroundTransparency = 1,
+                    Size = UDim2.new(1, 0, 0, 38),
+                    Text = "",
+                    ZIndex = 5
+                })
+
+                local function ToggleDrop()
+                    Expanded = not Expanded
+                    Tween(DropFrame, {Size = UDim2.new(1, 0, 0, Expanded and (38 + (#list + 1) * 30) or 38)})
+                    Tween(DropFrame.Arrow, {Rotation = Expanded and 180 or 0})
+                end
+
+                Interact.MouseButton1Click:Connect(ToggleDrop)
+                DropFrame.Arrow.MouseButton1Click:Connect(ToggleDrop)
 
                 local function IsSelected(item)
                     for _, v in pairs(Selected) do
@@ -1290,7 +1272,6 @@ function Phantom:Window(title)
                     end
                     return false
                 end
-
                 local function ToggleItem(item)
                     local found = false
                     for i, v in pairs(Selected) do
@@ -1308,7 +1289,6 @@ function Phantom:Window(title)
                     SaveSettings()
                     callback(Selected)
                 end
-
                 local AllButton = Create("TextButton", {
                     Parent = DropFrame.List,
                     BackgroundColor3 = Theme.Main,
@@ -1323,14 +1303,12 @@ function Phantom:Window(title)
                     ZIndex = 6,
                     LayoutOrder = 0
                 })
-
                 AllButton.MouseEnter:Connect(function()
                     Tween(AllButton, {BackgroundColor3 = Theme.Section})
                 end)
                 AllButton.MouseLeave:Connect(function()
                     Tween(AllButton, {BackgroundColor3 = Theme.Main})
                 end)
-
                 AllButton.MouseButton1Click:Connect(function()
                     if #Selected == #list then
                         Selected = {}
@@ -1344,7 +1322,6 @@ function Phantom:Window(title)
                     Settings[text] = Selected
                     SaveSettings()
                     callback(Selected)
-
                     for _, child in pairs(DropFrame.List:GetChildren()) do
                         if child:IsA("TextButton") and child ~= AllButton then
                             local itemName = child.Text:gsub("^  ", ""):gsub(" ✓$", "")
@@ -1358,7 +1335,6 @@ function Phantom:Window(title)
                         end
                     end
                 end)
-
                 for idx, item in pairs(list) do
                     local isSelected = IsSelected(item)
                     local ItemBtn = Create("TextButton", {
@@ -1375,7 +1351,6 @@ function Phantom:Window(title)
                         ZIndex = 6,
                         LayoutOrder = idx
                     })
-
                     ItemBtn.MouseEnter:Connect(function()
                         Tween(ItemBtn, {BackgroundColor3 = Theme.Section, TextColor3 = Theme.Text})
                     end)
@@ -1386,7 +1361,6 @@ function Phantom:Window(title)
                             TextColor3 = selected and Theme.Accent or Theme.TextDark
                         })
                     end)
-
                     ItemBtn.MouseButton1Click:Connect(function()
                         ToggleItem(item)
                         local selected = IsSelected(item)
@@ -1394,23 +1368,14 @@ function Phantom:Window(title)
                         ItemBtn.TextColor3 = selected and Theme.Accent or Theme.TextDark
                     end)
                 end
-
-                DropFrame.Arrow.MouseButton1Click:Connect(function()
-                    Expanded = not Expanded
-                    Tween(DropFrame, {Size = UDim2.new(1, 0, 0, Expanded and (38 + (#list + 1) * 30) or 38)})
-                    Tween(DropFrame.Arrow, {Rotation = Expanded and 180 or 0})
-                end)
-
                 if default and #default > 0 then 
                     callback(Selected) 
                 end
             end
-
             return SectionObj
         end
         return TabObj
     end
     return WindowObj
 end
-
 return Phantom
