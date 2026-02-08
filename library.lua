@@ -340,14 +340,12 @@ function Phantom:Window(title)
     }, {
         Create("UICorner", {CornerRadius = UDim.new(0, 10)}),
         Create("UIStroke", {Color = Theme.Stroke, Thickness = 1}),
-        Create("TextButton", {
+        Create("ImageButton", {
             Name = "HiddenToggle",
             BackgroundTransparency = 1,
-            Size = UDim2.new(1, 0, 1, 0),
-            Text = "Open",
-            TextColor3 = Theme.Accent,
-            Font = Enum.Font.GothamBold,
-            TextSize = 14,
+            Size = UDim2.new(0, 40, 0, 40),
+            Image = "rbxassetid://71886153908562",
+            ImageColor3 = Theme.Accent,
             AnchorPoint = Vector2.new(0.5, 0.5),
             Position = UDim2.new(0.5, 0, 0.5, 0)
         })
