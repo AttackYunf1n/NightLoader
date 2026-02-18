@@ -110,17 +110,23 @@ local function MakeDraggable(trigger, frame, callback)
     trigger.Active = true
     local dragging = false
     local dragInput, dragStart, startPos
-    
+    local hasMoved = false
+
     trigger.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             dragging = true
+            hasMoved = false
             dragStart = input.Position
             startPos = frame.Position
             
-            input.Changed:Connect(function()
+            local inputCon
+            inputCon = input.Changed:Connect(function()
                 if input.UserInputState == Enum.UserInputState.End then
                     dragging = false
-                    if callback then callback() end
+                    inputCon:Disconnect()
+                    if not hasMoved and callback then
+                        callback()
+                    end
                 end
             end)
         end
@@ -135,15 +141,10 @@ local function MakeDraggable(trigger, frame, callback)
     UserInputService.InputChanged:Connect(function(input)
         if input == dragInput and dragging then
             local delta = input.Position - dragStart
-            if delta.Magnitude > 2 then
+            if delta.Magnitude > 5 then
+                hasMoved = true
                 frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
             end
-        end
-    end)
-
-    UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = false
         end
     end)
 end
@@ -358,6 +359,7 @@ function Phantom:Window(title)
             Main.Visible = false
         else
             Main.Position = UDim2.new(0.5, 0, 0.5, 0)
+            CurrentWindowPosition = Main.Position
             HiddenFrame.Visible = false
             Main.Visible = true
             Main.Size = WindowSize
