@@ -1,4 +1,3 @@
-
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local HttpService = game:GetService("HttpService")
@@ -111,23 +110,17 @@ local function MakeDraggable(trigger, frame, callback)
     trigger.Active = true
     local dragging = false
     local dragInput, dragStart, startPos
-    local hasMoved = false
-
+    
     trigger.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             dragging = true
-            hasMoved = false
             dragStart = input.Position
             startPos = frame.Position
             
-            local inputCon
-            inputCon = input.Changed:Connect(function()
+            input.Changed:Connect(function()
                 if input.UserInputState == Enum.UserInputState.End then
                     dragging = false
-                    inputCon:Disconnect()
-                    if not hasMoved and callback then
-                        callback()
-                    end
+                    if callback then callback() end
                 end
             end)
         end
@@ -142,10 +135,15 @@ local function MakeDraggable(trigger, frame, callback)
     UserInputService.InputChanged:Connect(function(input)
         if input == dragInput and dragging then
             local delta = input.Position - dragStart
-            if delta.Magnitude > 5 then
-                hasMoved = true
+            if delta.Magnitude > 2 then
                 frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
             end
+        end
+    end)
+
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
         end
     end)
 end
@@ -359,8 +357,7 @@ function Phantom:Window(title)
             HiddenFrame.Visible = true
             Main.Visible = false
         else
-            Main.Position = HiddenFrame.Position
-            CurrentWindowPosition = HiddenFrame.Position
+            Main.Position = UDim2.new(0.5, 0, 0.5, 0)
             HiddenFrame.Visible = false
             Main.Visible = true
             Main.Size = WindowSize
